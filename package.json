@@ -1,0 +1,119 @@
+{
+  "name": "opencode-history",
+  "displayName": "OpenCode History",
+  "description": "Manage and browse opencode session history: list sessions, read full conversations, stats, delete and continue sessions in terminal.",
+  "version": "0.1.0",
+  "publisher": "opencode-history",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "OpenCode History",
+      "properties": {
+        "opencodeHistory.opencodePath": {
+          "type": "string",
+          "default": "",
+          "description": "绝对路径指向 opencode 可执行文件。留空则自动探测(PATH + 常见安装位置)。Windows 下也接受 opencode.cmd。"
+        },
+        "opencodeHistory.nodePath": {
+          "type": "string",
+          "default": "",
+          "description": "node 可执行文件的绝对路径,用于 prepend 到 PATH(当 VSCode 从 GUI 启动、未继承 shell PATH 时)。"
+        },
+        "opencodeHistory.dataPath": {
+          "type": "string",
+          "default": "",
+          "description": "opencode 数据目录的绝对路径(含 opencode.db)。留空则自动探测 (~/.local/share/opencode)。"
+        },
+        "opencodeHistory.autoRefreshSeconds": {
+          "type": "number",
+          "default": 10,
+          "description": "轮询数据库文件变化以自动刷新列表的间隔秒数;设为 0 关闭自动刷新。"
+        },
+        "opencodeHistory.toolOutputLimit": {
+          "type": "number",
+          "default": 4000,
+          "description": "详情视图中单个工具输出最大渲染字符数,超出部分截断。"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "opencodeHistory",
+          "title": "OpenCode History",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "opencodeHistory": [
+        {
+          "type": "webview",
+          "id": "opencodeHistory.main",
+          "name": "搜索"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "opencodeHistory.refresh",
+        "title": "刷新",
+        "category": "OpenCode History",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "opencodeHistory.openStats",
+        "title": "打开统计面板",
+        "category": "OpenCode History",
+        "icon": "$(graph-line)"
+      },
+      {
+        "command": "opencodeHistory.openSession",
+        "title": "打开会话",
+        "category": "OpenCode History"
+      },
+      {
+        "command": "opencodeHistory.copyExport",
+        "title": "复制导出 JSON",
+        "category": "OpenCode History"
+      },
+      {
+        "command": "opencodeHistory.continueSession",
+        "title": "在终端继续该会话",
+        "category": "OpenCode History"
+      },
+      {
+        "command": "opencodeHistory.openSessionDir",
+        "title": "打开会话所在目录",
+        "category": "OpenCode History"
+      },
+      {
+        "command": "opencodeHistory.deleteSession",
+        "title": "删除会话",
+        "category": "OpenCode History",
+        "icon": "$(trash)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "typecheck": "tsc -p ./",
+    "compile": "npm run typecheck && npm run esbuild"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}
