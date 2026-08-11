@@ -1,7 +1,14 @@
 import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import { fmtTime } from './format';
-import { getConfig, deleteSession, exportSession, getDbFile, resetBinaryCache } from './opencode';
+import {
+  getConfig,
+  continueSessionInTerminal,
+  deleteSession,
+  exportSession,
+  getDbFile,
+  resetBinaryCache,
+} from './opencode';
 import { openDir, SessionDetailProvider } from './webviews/SessionDetailProvider';
 import { StatsProvider } from './webviews/StatsProvider';
 import { MainViewProvider } from './webviews/MainViewProvider';
@@ -23,10 +30,8 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   async function continueInTerminal(id: string): Promise<void> {
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    const term = vscode.window.createTerminal({ name: `opencode ${id.slice(0, 8)}`, cwd });
-    term.show(true);
-    term.sendText(`opencode --session "${id}"`);
+    const row = mainView.findRow(id);
+    await continueSessionInTerminal(id, row?.directory ?? undefined);
   }
 
   async function deleteSessionAction(id: string): Promise<void> {

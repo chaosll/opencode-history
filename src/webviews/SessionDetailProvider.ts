@@ -111,7 +111,7 @@ export class SessionDetailProvider {
         break;
       }
       case 'continue':
-        await continueSessionInTerminal(this.sessionId);
+        await continueSessionInTerminal(this.sessionId, this.lastData?.info?.directory);
         break;
       case 'folder': {
         const dir = this.lastData?.info?.directory;

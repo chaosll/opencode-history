@@ -252,10 +252,21 @@ export async function keywordSessionIds(keyword: string): Promise<string[]> {
   return rows.map((r) => String(r.session_id)).filter(Boolean);
 }
 
-export async function continueSessionInTerminal(id: string): Promise<void> {
+export async function continueSessionInTerminal(id: string, sessionDir?: string): Promise<void> {
   const name = `opencode ${id.slice(0, 8)}`;
-  const term = vscode.window.createTerminal({ name, cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath });
-  term.show(true);
+  const cwd = sessionDir || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const term = vscode.window.createTerminal({
+    name,
+    cwd,
+    location: {
+      viewColumn: vscode.ViewColumn.Beside,
+      preserveFocus: false,
+    },
+    env: {
+      OPENCODE_CALLER: 'vscode',
+    },
+  });
+  term.show();
   term.sendText(`opencode --session "${id}"`);
 }
 
