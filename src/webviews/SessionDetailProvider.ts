@@ -28,6 +28,7 @@ export class SessionDetailProvider {
   private panel: vscode.WebviewPanel | undefined;
   private sessionId = '';
   private lastData: SessionExport | undefined;
+  onActiveChange?: (id: string | undefined) => void;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -46,10 +47,18 @@ export class SessionDetailProvider {
           localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')],
         }
       );
+      this.panel.onDidChangeViewState(
+        (e) => {
+          if (e.webviewPanel.active) this.onActiveChange?.(this.sessionId);
+        },
+        null,
+        this.context.subscriptions
+      );
       this.panel.onDidDispose(
         () => {
           this.panel = undefined;
           this.lastData = undefined;
+          this.onActiveChange?.(undefined);
         },
         null,
         this.context.subscriptions
@@ -62,6 +71,7 @@ export class SessionDetailProvider {
         this.context.subscriptions
       );
     }
+    this.onActiveChange?.(this.sessionId);
     await this.render(true);
   }
 

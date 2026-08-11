@@ -32,6 +32,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
   private filters: PersistedFilters;
   private mode: ViewMode;
   private itemsRaw: SessionRow[] = [];
+  private activeId = '';
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -55,6 +56,19 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
 
   findRow(id: string): SessionRow | undefined {
     return this.itemsRaw.find((r) => r.id === id);
+  }
+
+  setActive(id: string | undefined): void {
+    const next = id ?? '';
+    if (next === this.activeId) return;
+    this.activeId = next;
+    if (!this.view) return;
+    this.view.webview.postMessage({
+      cmd: 'render',
+      html: this.renderResults(this.itemsRaw),
+      count: this.itemsRaw.length,
+      mode: this.mode,
+    });
   }
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -172,9 +186,9 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     const dir = esc(r.directory || r.projectId || '全局');
     const model = r.model ? esc(r.model.replace(/^\{.*?"id":"([^"]+)".*$/, '$1')) : '';
     const badge = `<span class="badge">${fmtK(r.tokensInput + r.tokensOutput)}</span>`;
-    return `<div class="sess" data-id="${esc(r.id)}">
+    return `<div class="sess${r.id === this.activeId ? ' active' : ''}" data-id="${esc(r.id)}">
       <div class="sess-top">
-        <span class="sess-title" data-action="open" title="打开会话">${title}</span>
+        <span class="sess-title" title="打开会话">${title}</span>
         <span class="sess-meta">${badge} ${relTime(r.updatedAt)}</span>
       </div>
       <div class="sess-sub">${dir}${model ? ` · ${model}` : ''}</div>
@@ -222,6 +236,8 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
 .sess { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
 .sess:hover { background: var(--vscode-list-hoverBackground); }
 .sess:hover .sess-title { color: #c5c599; }
+.sess.active { background: var(--vscode-list-activeSelectionBackground); }
+.sess.active .sess-title { color: #c5c599; }
 .sess-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .sess-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sess-meta { flex: none; font-size: 0.75em; color: var(--vscode-descriptionForeground); }
@@ -283,14 +299,19 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
     });
   });
   document.getElementById('results').addEventListener('click', function (e) {
-    const actionEl = e.target.closest('[data-action]');
-    if (actionEl) {
-      const sess = actionEl.closest('[data-id]');
-      if (sess) vscode.postMessage({ cmd: actionEl.dataset.action, id: sess.dataset.id });
+    const btn = e.target.closest('.sess-actions button');
+    if (btn) {
+      const sess = btn.closest('[data-id]');
+      if (sess) vscode.postMessage({ cmd: btn.dataset.action, id: sess.dataset.id });
       return;
     }
     const grp = e.target.closest('.grp');
-    if (grp) grp.classList.toggle('collapsed');
+    if (grp) {
+      grp.classList.toggle('collapsed');
+      return;
+    }
+    const sess = e.target.closest('[data-id]');
+    if (sess) vscode.postMessage({ cmd: 'open', id: sess.dataset.id });
   });
   window.addEventListener('message', function (e) {
     const m = e.data;

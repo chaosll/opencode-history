@@ -60,6 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
     deleteSession: deleteSessionAction,
     openFolder: openFolderAction,
   });
+  detailProvider.onActiveChange = (id) => mainView.setActive(id);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('opencodeHistory.main', mainView, {
