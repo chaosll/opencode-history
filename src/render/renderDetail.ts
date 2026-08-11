@@ -95,16 +95,21 @@ function renderPart(p: Part, limit: number): string {
     }
     case 'tool': {
       const name = esc(p.tool);
-      const state = String(p.state ?? '');
-      const isError = /error|failed/i.test(state);
-      const stateClass = isError ? ' error' : state ? ' success' : '';
-      const input = p.input != null ? `<details class="tool-block open"><summary>输入</summary><pre>${prettyValue(p.input, limit)}</pre></details>` : '';
+      const st = (p.state ?? {}) as Record<string, unknown>;
+      const status = String(st.status ?? '');
+      const isError = /error|failed/i.test(status);
+      const stateClass = isError ? ' error' : status ? ' success' : '';
+      const stateLabel = isError ? `错误 (${status})` : status ? status : '';
+      const title = st.title ? ` · ${esc(st.title)}` : '';
+      const inputVal = st.input ?? p.input;
+      const outputRaw = st.output ?? (st.metadata as { output?: unknown } | undefined)?.output ?? p.output;
+      const input = inputVal != null ? `<details class="tool-block open"><summary>输入</summary><pre>${prettyValue(inputVal, limit)}</pre></details>` : '';
       const output =
-        p.output != null
-          ? `<details class="tool-block${isError ? ' error' : ''}"><summary>${isError ? '错误' : '输出'}</summary><pre>${prettyValue(p.output, limit)}</pre></details>`
+        outputRaw != null
+          ? `<details class="tool-block${isError ? ' error' : ''}"><summary>${isError ? '错误' : '输出'}</summary><pre>${prettyValue(outputRaw, limit)}</pre></details>`
           : '';
       return `<div class="tool">
-        <div class="tool-head"><span class="tool-name">⚙ ${name}</span><span class="tool-state${stateClass}">${esc(state || '')}</span></div>
+        <div class="tool-head"><span class="tool-name">⚙ ${name}${title}</span><span class="tool-state${stateClass}">${esc(stateLabel)}</span></div>
         ${input}${output}
       </div>`;
     }
