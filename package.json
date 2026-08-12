@@ -40,6 +40,41 @@
           "type": "number",
           "default": 4000,
           "description": "详情视图中单个工具输出最大渲染字符数,超出部分截断。"
+        },
+        "opencodeHistory.itemFontSize": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表条目标题的字体大小(CSS 值,如 13px 或 1.1em)。留空使用默认。"
+        },
+        "opencodeHistory.itemFontColor": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表条目标题的字体颜色(CSS 颜色,如 #d4d4d4)。留空使用默认。"
+        },
+        "opencodeHistory.subFontSize": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表条目副标题(目录/模型)的字体大小(CSS 值)。留空使用默认。"
+        },
+        "opencodeHistory.subFontColor": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表条目副标题(目录/模型)的字体颜色(CSS 颜色)。留空使用默认。"
+        },
+        "opencodeHistory.activeItemBackground": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表中当前激活条目的背景色(CSS 颜色)。留空使用默认。"
+        },
+        "opencodeHistory.activeItemFontColor": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表中当前激活条目标题的字体颜色(CSS 颜色)。留空使用默认。"
+        },
+        "opencodeHistory.activeItemFontSize": {
+          "type": "string",
+          "default": "",
+          "description": "侧边栏会话列表中当前激活条目标题的字体大小(CSS 值,如 13px 或 1.1em)。留空使用默认。"
         }
       }
     },

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { fmtK, relTime } from '../format';
+import { getConfig } from '../opencode';
 import { esc } from '../render/renderDetail';
 import { groupByDir, runSearch } from '../search/searchEngine';
 import type { SessionRow } from '../types';
@@ -25,6 +26,25 @@ function getNonce(): string {
   let out = '';
   for (let i = 0; i < 32; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
+}
+
+function buildUserCss(): string {
+  const size = getConfig<string>('itemFontSize', '').trim();
+  const color = getConfig<string>('itemFontColor', '').trim();
+  const subSize = getConfig<string>('subFontSize', '').trim();
+  const subColor = getConfig<string>('subFontColor', '').trim();
+  const activeBg = getConfig<string>('activeItemBackground', '').trim();
+  const activeColor = getConfig<string>('activeItemFontColor', '').trim();
+  const activeSize = getConfig<string>('activeItemFontSize', '').trim();
+  const rules: string[] = [];
+  if (size) rules.push(`.sess .sess-title{font-size:${size}!important}`);
+  if (color) rules.push(`.sess .sess-title{color:${color}!important}`);
+  if (subSize) rules.push(`.sess .sess-sub{font-size:${subSize}!important}`);
+  if (subColor) rules.push(`.sess .sess-sub{color:${subColor}!important}`);
+  if (activeBg) rules.push(`.sess.active{background:${activeBg}!important}`);
+  if (activeColor) rules.push(`.sess.active .sess-title{color:${activeColor}!important}`);
+  if (activeSize) rules.push(`.sess.active .sess-title{font-size:${activeSize}!important}`);
+  return rules.join('');
 }
 
 export class MainViewProvider implements vscode.WebviewViewProvider {
@@ -58,17 +78,22 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
     return this.itemsRaw.find((r) => r.id === id);
   }
 
+  private postRender(html: string): void {
+    this.view?.webview.postMessage({
+      cmd: 'render',
+      html,
+      count: this.itemsRaw.length,
+      mode: this.mode,
+      css: buildUserCss(),
+    });
+  }
+
   setActive(id: string | undefined): void {
     const next = id ?? '';
     if (next === this.activeId) return;
     this.activeId = next;
     if (!this.view) return;
-    this.view.webview.postMessage({
-      cmd: 'render',
-      html: this.renderResults(this.itemsRaw),
-      count: this.itemsRaw.length,
-      mode: this.mode,
-    });
+    this.postRender(this.renderResults(this.itemsRaw));
   }
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -95,13 +120,7 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
         exclude: this.filters.exclude.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean),
       });
       this.itemsRaw = items;
-      const html = this.renderResults(items);
-      this.view.webview.postMessage({
-        cmd: 'render',
-        html,
-        count: this.itemsRaw.length,
-        mode: this.mode,
-      });
+      this.postRender(this.renderResults(items));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.view.webview.postMessage({ cmd: 'error', text: esc(msg) });
@@ -124,16 +143,14 @@ export class MainViewProvider implements vscode.WebviewViewProvider {
       case 'toggle': {
         this.mode = msg.mode === 'list' ? 'list' : 'tree';
         await this.context.workspaceState.update('opencodeHistory.viewMode', this.mode);
-        this.view?.webview.postMessage({
-          cmd: 'render',
-          html: this.renderResults(this.itemsRaw),
-          count: this.itemsRaw.length,
-          mode: this.mode,
-        });
+        this.postRender(this.renderResults(this.itemsRaw));
         break;
       }
       case 'refresh':
         await this.runSearchAndRender();
+        break;
+      case 'settings':
+        await vscode.commands.executeCommand('workbench.action.openSettings', 'opencodeHistory');
         break;
       case 'open': {
         const id = String(msg.id ?? '');
@@ -218,7 +235,7 @@ body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size
 input { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); border-radius: 4px; padding: 4px 8px; font-size: var(--vscode-font-size); }
 input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
 .search-row { display: flex; align-items: center; gap: 4px; }
-.filter-toggle { cursor: pointer; background: none; border: none; color: var(--vscode-descriptionForeground); font-size: 1em; padding: 0 4px; flex: none; }
+.filter-toggle { cursor: pointer; background: none; border: none; color: var(--vscode-descriptionForeground); font-size: 1em; padding: 0 4px; flex: none; align-self: stretch; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .filters { display: none; margin: 6px 0; }
 .filters.open { display: block; }
 .filters label { display: block; font-size: 0.75em; color: var(--vscode-descriptionForeground); margin: 6px 0 2px; }
@@ -235,9 +252,9 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
 .grp-items { border-left: 3px solid var(--vscode-input-background); margin: 2px 0 6px 10px; }
 .sess { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
 .sess:hover { background: var(--vscode-list-hoverBackground); }
-.sess:hover .sess-title { color: #c5c599; }
+.sess:hover .sess-title { color: #d35e1e; }
 .sess.active { background: var(--vscode-list-activeSelectionBackground); }
-.sess.active .sess-title { color: #c5c599; }
+.sess.active .sess-title { color: #d35e1e; }
 .sess-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .sess-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sess-meta { flex: none; font-size: 0.75em; color: var(--vscode-descriptionForeground); }
@@ -251,12 +268,14 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
 .empty { color: var(--vscode-descriptionForeground); padding: 16px 4px; text-align: center; }
 .err { color: #ff8a8a; padding: 8px; }
 </style>
+<style id="user-style">${buildUserCss()}</style>
 </head>
 <body>
 <div class="search-row">
   <input id="keyword" type="text" placeholder="搜索关键词…" value="${kw}" spellcheck="false">
   <button id="filter-toggle" class="filter-toggle" title="过滤选项">⏷</button>
   <button id="btn-refresh" class="filter-toggle" title="刷新">⟳</button>
+  <button id="btn-settings" class="filter-toggle" title="打开设置">⚙</button>
 </div>
 <div id="filters" class="filters">
   <label>包含的文件(目录 glob,逗号分隔)</label>
@@ -293,6 +312,9 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
   document.getElementById('btn-refresh').addEventListener('click', function () {
     vscode.postMessage({ cmd: 'refresh' });
   });
+  document.getElementById('btn-settings').addEventListener('click', function () {
+    vscode.postMessage({ cmd: 'settings' });
+  });
   document.querySelectorAll('.mode-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       vscode.postMessage({ cmd: 'toggle', mode: b.dataset.mode });
@@ -320,6 +342,7 @@ input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px
       document.getElementById('results').innerHTML = m.html;
       document.getElementById('mode-tree').classList.toggle('active', m.mode === 'tree');
       document.getElementById('mode-list').classList.toggle('active', m.mode === 'list');
+      if (m.css) document.getElementById('user-style').textContent = m.css;
     } else if (m.cmd === 'error') {
       document.getElementById('results').innerHTML = '<div class="err">' + m.text + '</div>';
     }
